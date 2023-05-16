@@ -1,0 +1,71 @@
+
+service: shc-assignment
+app: shc-assignment
+org: eth0ashu
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: ap-south-1
+
+  environment:
+    DB: mongodb+srv://shc:shc@shc.enbq5co.mongodb.net/?retryWrites=true&w=majority
+    JWT_SECRET: "shcshcshc"
+
+functions:
+  verify-token:
+    handler: handlers/auth/handler.verifyToken
+
+  signUp:
+    handler: handlers/user/handler.signUp
+    events:
+      - http: 
+          path: /signUp
+          method: post
+          cors: true
+
+  signIn:
+    handler: handlers/user/handler.signIn
+    events:
+      - http: 
+          path: /signIn
+          method: post
+          cors: true
+          
+  verifyPhone:
+    handler: handlers/user/handler.verifyPhone
+    events:
+      - http: 
+          path: /verifyPhone
+          method: post
+          cors: true
+          authorizer:
+            name: verify-token
+            identitySource: method.request.header.Authorization
+            resultTtlInSeconds: 3600
+
+resources:
+  Resources:
+    SnsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: "OTP Topic"
+        TopicName: "OtpTopic"
+    BucketUpload:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: shcserverless
+    Unauthorized:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          "gatewayresponse.header.Access-Control-Allow-Origin": "'*'"
+          "gatewayresponse.header.Access-Control-Allow-Headers": "'*'"
+        ResponseType: "DEFAULT_4XX"
+        RestApiId:
+          Ref: "ApiGatewayRestApi"
+plugins:
+  - serverless-offline
